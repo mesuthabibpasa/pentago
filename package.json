@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "2d-array-rotation": "^2.1.1"
+    "2d-array-rotation": "^2.1.1",
+    "lodash": "^4.17.21",
+    "prompt": "^1.1.0"
   }
 }
