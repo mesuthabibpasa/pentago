@@ -1,14 +1,15 @@
 const _ = require('lodash')
-const prompt = require('prompt')
+// const prompt = require('prompt')
+var readlineSync = require('readline-sync')
 const { rotate90, rotate270 } = require('2d-array-rotation')
 
 const KEYS_IN_A_ROW_WIN_LIMIT = 5
 const dim = 3
 const getMiniBoard = () => {
   const mini = []
-  for (let r = 0; r < dim; r+=1) {
+  for (let r = 0; r < dim; r += 1) {
     const inner = []
-    for (let c = 0; c < dim; c+=1) {
+    for (let c = 0; c < dim; c += 1) {
       inner.push(null)
     }
     mini.push(inner)
@@ -41,7 +42,11 @@ const getBoard = () => {
 
 
 const putPiece = (piece, mini, rowIndex, colIndex) => {
-  mini[rowIndex][colIndex] = piece;
+  if (mini[rowIndex][colIndex] === null){
+    mini[rowIndex][colIndex] = piece;
+  } else {
+    return 'occupied'
+  }
 }
 
 const rotateMini = (mini, isCCW = false) => {
@@ -55,25 +60,26 @@ const rotateMini = (mini, isCCW = false) => {
 }
 
 const action = (piece, miniToPutPiece, rowIndex, colIndex, miniToRotate, ccw) => {
-    putPiece(piece, miniToPutPiece, rowIndex, colIndex);
-    const winnerAfterPutPiece = isGameOver()
-    if (winnerAfterPutPiece) {
-      return winnerAfterPutPiece
-    }
-    rotateMini(miniToRotate, ccw);
-    const winnerAfterRotateMini = isGameOver()
-    if (winnerAfterRotateMini) {
-      return winnerAfterRotateMini
-    }
+  let isOccupied = putPiece(piece, miniToPutPiece, rowIndex, colIndex);
+  if (isOccupied) return isOccupied
+  const winnerAfterPutPiece = isGameOver()
+  if (winnerAfterPutPiece) {
+    return winnerAfterPutPiece
+  }
+  rotateMini(miniToRotate, ccw);
+  const winnerAfterRotateMini = isGameOver()
+  if (winnerAfterRotateMini) {
+    return winnerAfterRotateMini
+  }
 
-    return null
+  return null
 };
 
 const isGameOver = () => {
   const winners = []
   const board = getBoard();
-  for (let r = 0; r < board.length; r+=1) {
-    for (let c = 0; c < board[0].length; c+=1) {
+  for (let r = 0; r < board.length; r += 1) {
+    for (let c = 0; c < board[0].length; c += 1) {
       const winner = search(board, r, c)
       if (winner) {
         winners.push(winner)
@@ -131,18 +137,52 @@ const searchInDirection = (board, r, c, keysInARow, dir) => {
 
 search(getBoard(), 0, 0)
 
-
-async function init () {
+async function init() {
   let winner = null
-  prompt.start();
+  // prompt.start();
+  console.log('Game is On!')
   const players = [1, -1]
+  const boardsArray = ['A', 'B', 'C', 'D']
   let turn = 0
-  while (winner === null) {
-    const { userAction } = await prompt.get(['userAction']);
-    const [boardToPutPiece, rIndex, cIndex, boardToRotate, isCCW] = userAction.split('_')
-    winner = action(players[turn % 2], BOARD[boardToPutPiece], +rIndex, +cIndex, BOARD[boardToRotate], isCCW === 'true')
+  while (winner === null || winner === 'occupied') {
+    // const { userAction } = await prompt.get(['userAction']);
+    // const [boardToPutPiece, rIndex, cIndex, boardToRotate, isCCW] = userAction.split('_')
+    const turnMessage = winner === 'occupied' ? 'This place is already occupied please try another place' : `Your move ${players[turn % 2]}`
+    console.log(turnMessage)
+    let putPieceBoardIndex = readlineSync.keyInSelect(boardsArray, 'Which board to put piece? ', {
+      guide: false,
+      cancel: false,
+    })
+    let rowIndex = readlineSync.questionInt(`Which row of ${boardsArray[putPieceBoardIndex]}: `)
+    let colIndex = readlineSync.questionInt(`Which column of ${boardsArray[putPieceBoardIndex]}: `)
+    while (rowIndex < 0 || rowIndex > 2 || colIndex < 0 || colIndex > 2){
+      console.log(`Please give valid numbers up to ${dim - 1}`)
+      rowIndex = readlineSync.questionInt(`Which row of ${boardsArray[putPieceBoardIndex]}: `, {
+        min: 0,
+        max: 2,
+      })
+      colIndex = readlineSync.questionInt(`Which column of ${boardsArray[putPieceBoardIndex]}: `, {
+        min: 0,
+        max: 2,
+      })
+    }
+      let rotateBooardIndex = readlineSync.keyInSelect(boardsArray, 'Which board to rotate? ', {
+        guide: false,
+        cancel: false,
+      })
+    if (readlineSync.keyInYN('Do you want turn CCW? Y: Yes N: No')) {
+      // 'Y' key was pressed.
+      isCCW = true
+    } else {
+      // Another key was pressed.
+      isCCW = false
+    }
+
+    winner = action(players[turn % 2], BOARD[boardsArray[putPieceBoardIndex]], +rowIndex, +colIndex, BOARD[boardsArray[rotateBooardIndex]], isCCW)
     console.log(getBoard())
-    turn++
+    if(winner !== 'occupied'){
+      turn++
+    }
   }
 
   if (winner === 0) {
@@ -152,9 +192,12 @@ async function init () {
   }
 }
 
-init()
+try {
+  init()
+} catch (err) {
+  console.log('something went wrong!');
+}
 
-// Only accept valid userActions
+// Only accept valid userActions 
 // Better interface for entering user actions
 // If user tries to put piece on a non-empty space, it should fail
-

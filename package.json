@@ -12,6 +12,7 @@
   "dependencies": {
     "2d-array-rotation": "^2.1.1",
     "lodash": "^4.17.21",
-    "prompt": "^1.1.0"
+    "prompt": "^1.1.0",
+    "readline-sync": "^1.4.10"
   }
 }
