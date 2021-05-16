@@ -42,10 +42,10 @@ const getBoard = () => {
 
 
 const putPiece = (piece, mini, rowIndex, colIndex) => {
-  if (mini[rowIndex][colIndex] === null){
+  if (mini[rowIndex][colIndex] === null) {
     mini[rowIndex][colIndex] = piece;
   } else {
-    return 'occupied'
+    throw new Error('This place is already occupied!')
   }
 }
 
@@ -60,8 +60,11 @@ const rotateMini = (mini, isCCW = false) => {
 }
 
 const action = (piece, miniToPutPiece, rowIndex, colIndex, miniToRotate, ccw) => {
-  let isOccupied = putPiece(piece, miniToPutPiece, rowIndex, colIndex);
-  if (isOccupied) return isOccupied
+  try {
+    putPiece(piece, miniToPutPiece, rowIndex, colIndex);
+  } catch (e) {
+    throw e
+  }
   const winnerAfterPutPiece = isGameOver()
   if (winnerAfterPutPiece) {
     return winnerAfterPutPiece
@@ -144,44 +147,42 @@ async function init() {
   const players = [1, -1]
   const boardsArray = ['A', 'B', 'C', 'D']
   let turn = 0
-  while (winner === null || winner === 'occupied') {
+  while (winner === null) {
     // const { userAction } = await prompt.get(['userAction']);
     // const [boardToPutPiece, rIndex, cIndex, boardToRotate, isCCW] = userAction.split('_')
-    const turnMessage = winner === 'occupied' ? 'This place is already occupied please try another place' : `Your move ${players[turn % 2]}`
-    console.log(turnMessage)
     let putPieceBoardIndex = readlineSync.keyInSelect(boardsArray, 'Which board to put piece? ', {
       guide: false,
       cancel: false,
     })
     let rowIndex = readlineSync.questionInt(`Which row of ${boardsArray[putPieceBoardIndex]}: `)
     let colIndex = readlineSync.questionInt(`Which column of ${boardsArray[putPieceBoardIndex]}: `)
-    while (rowIndex < 0 || rowIndex > 2 || colIndex < 0 || colIndex > 2){
+    while (rowIndex < 0 || rowIndex > 2 || colIndex < 0 || colIndex > 2) {
       console.log(`Please give valid numbers up to ${dim - 1}`)
       rowIndex = readlineSync.questionInt(`Which row of ${boardsArray[putPieceBoardIndex]}: `, {
-        min: 0,
-        max: 2,
+        min: 1,
+        max: 3,
       })
       colIndex = readlineSync.questionInt(`Which column of ${boardsArray[putPieceBoardIndex]}: `, {
-        min: 0,
-        max: 2,
+        min: 1,
+        max: 3,
       })
     }
-      let rotateBooardIndex = readlineSync.keyInSelect(boardsArray, 'Which board to rotate? ', {
-        guide: false,
-        cancel: false,
-      })
-    if (readlineSync.keyInYN('Do you want turn CCW? Y: Yes N: No')) {
-      // 'Y' key was pressed.
-      isCCW = true
-    } else {
-      // Another key was pressed.
-      isCCW = false
-    }
+    let rotateBooardIndex = readlineSync.keyInSelect(boardsArray, 'Which board to rotate? ', {
+      guide: false,
+      cancel: false,
+    })
 
-    winner = action(players[turn % 2], BOARD[boardsArray[putPieceBoardIndex]], +rowIndex, +colIndex, BOARD[boardsArray[rotateBooardIndex]], isCCW)
-    console.log(getBoard())
-    if(winner !== 'occupied'){
+    isCCW = readlineSync.keyInYN('Do you want turn CCW? Y: Yes N: No')
+
+    try {
+      winner = action(players[turn % 2], BOARD[boardsArray[putPieceBoardIndex]], +rowIndex - 1, +colIndex - 1, BOARD[boardsArray[rotateBooardIndex]], isCCW)
+      console.log(getBoard())
       turn++
+    } catch (e) {
+      console.log('\n')
+      console.log(e.message)
+      console.log('\n')
+      console.log('Please choose another place to move!')
     }
   }
 
@@ -192,11 +193,7 @@ async function init() {
   }
 }
 
-try {
-  init()
-} catch (err) {
-  console.log('something went wrong!');
-}
+init()
 
 // Only accept valid userActions 
 // Better interface for entering user actions
